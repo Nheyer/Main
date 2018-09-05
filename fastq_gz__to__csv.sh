@@ -2,7 +2,7 @@
 
 ##### This file should be placed in the directory with all the gziped R1 fastq files you want with R2 in a seperate directory named the same
 ##### The directures should both b in the same directory
-##### the directory should also contain the alignment files for the reference genome you are using
+##### the path to the reference you want to use
 ##### (should be renamed ref.fasta) and the python script 'temps_to_csv_line.py'
 ##### The user should append the output of this file to a file
 
@@ -13,7 +13,7 @@ big_buf='chr1:143200001-150600000 chr1:120400001-121700000'
 #######~~~~~~~~~~~~ FOR THE USER TO EDIT ~~~~~~~~~~~~~#######
 regions=$no_buf
 picard="/home/sheepless/picard/build/libs/picard.jar"
-
+ref=$1
 #### startup ####
 echo 'Sample , reads , duplicates , 1q21.1 , 1q21.1 Enrichment , % mapped , %duplicates , unique BCs , reads/unique BC , average insert size , path to histogram '
 # edit this line to put the absolute path to the directory then *.fastq.gz
