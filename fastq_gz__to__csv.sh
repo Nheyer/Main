@@ -35,7 +35,7 @@ for file in *.fastq.gz
  # use the original file name (without the endings) to name the flagstat output from data in the bam containing only the regions defined above and give it a .infob file ending
  samtools flagstat temp_5.bam > "${file::-9}.infob"
  # run the python script to take the info we need and convert it to one coma seperated line
- python3 temps_to_csv_line.py -ia "${file::-9}.infoa" -ib "${file::-9}.infob" -iq "${file::-3}" -ii "${file::-9}.info_insert"
+ python3 temps_to_csv_line_w_sets.py -ia "${file::-9}.infoa" -ib "${file::-9}.infob" -iq "${file::-3}" -ii "${file::-9}.info_insert"
 
 
  #### cleaning ####
