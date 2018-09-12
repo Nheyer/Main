@@ -46,5 +46,5 @@ for file in *.fastq.gz
  # remove all the files we made and re zip the fastq file
  rm temp_*
  pigz -p $t "${file::-3}"
- pigz -p $t "../R2/${file::-3}"
+ pigz -p $t "../R2/${R2::-3}"
  done
