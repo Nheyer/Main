@@ -1,9 +1,5 @@
 #!usr/bin/env python3
 
-
-
-# this assumes you are runing it in a directory with the reference genome index with prefix ref.fasta
-
 def paths():
     # initialise and set defaults
     import sys
@@ -37,21 +33,21 @@ def paths():
         if sys.argv[n] in ['-h', '--help']:
             sys.stderr.write('''
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~updated for samtools1.9.0~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n
-            'Usage: \t bin_clasifier -i/--Inputfas [file paths]  or -I/--input-dir [AssembleBinStep directory] -o/--OutputFile [filename.tsv] \n
+            'Usage: \t bin_clasifier -i/--Inputfas [file paths]  or -I/--input-dir [AssembleBinStep directory] -o/--OutputFile [filename.csv] \n
             -----------------------------------------------------------------------------------------\n
             Manditory flags:\n
             -R \t --Reference \t the path to the refrence being used for bwa
             -i \t --Inputfas \t a space seperated list of paths to the fasta or fastq files in the bins
-            -o \t --Outputfile \t the path including the filename of the tsv you would like the clasifications in
+            -o \t --Outputfile \t the path including the filename of the csv you would like the clasifications in
             ------------------------------------------------------------------------------------------
             Optional flags:\n
             -h \t --help \t this will print the usage statement to the standard error 
             -q \t --QuickKill \t if this flag is used it will remove all sam files as quickly as possable
-            -b \t --memOptions \t a space seperated list of flags to pass to mem
+            -b \t --memOptions \t a space separated list of flags to pass to mem
             -Q \t --Quality \t minimum read quality score to consider default == 10
             -s \t --splits \t how much to split the genes [1 to 30] default == 14
             -sc \t --show-counts \t report the number of reads in the maximun fiting catigory  default == False
-            -g \t --genes \t a space seperated list of start,end,name,chr[int]: default == NOTCH2NL\n\n
+            -g \t --genes \t a space separated list of start,end,name,chr[int]: default == NOTCH2NL\n\n
             ''')
 
             # exit if you print help
@@ -136,14 +132,11 @@ def paths():
     # we have now delt with the io return all the things we need
     return [inputs,outputfilenm,qk,memopts,str(qual_flag),splkey,genes_list,path_to_fa,str(sam_threds),show_counts]
 
-def inputconf(list, split):
+def inputconf(list,  SplitIntoParts):
     # set the spliting factor defined as the defult or user input
-    SplitIntoParts = split
     # create the dictionary to be added to, with a none key already inside to deal with situations that
     # result from no reeds in any region being tested
     diction = {'none':'**'}
-
-
     # a bunch of empty lists to be filled based off the splits needed
     genes = []
     llist =[]
@@ -164,12 +157,13 @@ def inputconf(list, split):
         runing = int(gene[0])
         # use the outer loop to construct parts needed to add a key to the dictionary then do that
         for i in range(int(SplitIntoParts)):
-            # combine the chromosome input with the running start (same as the end of the last iteration)
-            strn1 = gene[3] + str(int(round(runing))) + "-"
             # update the running var to the end of the current location using the calculated dif
-            runing = runing + dif
+            runing_hold = runing + dif
+            # combine the chromosome input with the running start (same as the end of the last iteration)
+            strn1 = gene[3] + str(min([int(round(runing)),int(round(runing_hold))])) + "-"
             # create the second part of the key term
-            strn1 = strn1 + str(int(round(runing)))
+            strn1 = strn1 + str(max([int(round(runing)),int(round(runing_hold))]))
+            runing = runing_hold
             # find the key value needed
             strn2 = "|" + gene[2] + str(i)
             # combine the strings so they can be split properly to be added to the dictionary
@@ -208,15 +202,13 @@ def main():
 
     # start the main loop to loop through input files (bins)
     for loopfile in input_list:
-        #next two lines work to find the number of barcodes
         try:
             working_bin_num = loopfile.rstrip("/fixed.fa").split('c')[len(loopfile.rstrip("/fixed.fa").split('c'))-1]
-            numbarcodesinfile = subprocess.check_output(['wc','-l', loopfile.rstrip("fixed.fa") + "../../../working/PhaseBarcodesStep/bins/" + working_bin_num + ".bin.txt"]).split(" ")[0]
+            numbarcodesinfile = subprocess.check_output(['wc','-l', loopfile.rstrip("fixed.fa") + "../../../working/PhaseBarcodesStep/bins/" + working_bin_num + ".bin.txt"]).split("\t")[0]
+            # write the file name to the line then add a comma
+            outfile.write("%s\t%s\t" % (loopfile,numbarcodesinfile))
         except:
-            sys.stderr.write("looked for barcodes for %s, but couldn't find it, so passing " (loopfile))
-            numbarcodesinfile = "N/A"
-        # write the file name to the line then add a comma
-        outfile.write("%s\t%s\t" % (loopfile,numbarcodesinfile))
+            outfile.write("%s\t" % loopfile)
         # rum bwa with the flags the user defined  referencing the genmome called ref.fasta and stores the sam to be used
         # the sam file is marked for the cleanup later , then the sam file is redused to only quality 60 reads and
         # converted to a bam file that is also marked for cleanup
