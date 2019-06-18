@@ -10,7 +10,7 @@ def inputs():
     txt_out = ''
     file_out = ''
     usage_stmnt='''
-    Usage: pyhton check_BX_for_dups.py -i/--inputs <the two bams you are checking> -@/--threads <max number of threads>\n
+    Usage: pyhton check_BX_for_dups_v0.1.0.py -i/--inputs <the two bams you are checking> -@/--threads <max number of threads>\n
     ------------------------------------------------------------------------------------------------------------------
     Mandatory flags:
     -i\t --inputs\t The two .bam files from longranger you want to merge.
@@ -106,7 +106,7 @@ def main():
     if see_dupes(b1,b2,out,tg):
         new_path_1 = mk_unque(b1, '-U-1', tg)
         new_path_2 = mk_unque(b2, '-U-2', tg)
-        if see_dupes(new_path_1,new_path_2,out):
+        if see_dupes(new_path_1,new_path_2,out,tg):
             sys.exit()
         else:
             b1 = new_path_1
