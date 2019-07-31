@@ -1,4 +1,4 @@
-def dict_maker(path,Depth_format_flag,reference_format_flag):
+def dict_maker(path, Depth_format_flag, reference_format_flag, contig):
     import pysam
     import numpy as np
     import sys
@@ -43,10 +43,11 @@ def dict_maker(path,Depth_format_flag,reference_format_flag):
     a_norm = gfloat / (5.175 * a_type)
     b_norm = gfloat / (5.175 * b_type)
     c_norm = gfloat / (5.175 * c_type)
-    print (n_norm,d_norm,a_norm,b_norm,c_norm,len(genotype))
-    print (n_norm*n_type,d_norm*d_type,a_norm*a_type,b_norm*b_type,c_norm*c_type)
+    print(n_norm, d_norm, a_norm, b_norm, c_norm, len(genotype))
+    print(n_norm*n_type, d_norm*d_type, a_norm*a_type, b_norm*b_type, c_norm*c_type)
     # loop through the vcf
-    for var in vcf:
+    for var in vcf.fetch(contig=contig):
+        pos_key = str(variant.pos) + str(variant.alleles()[1])
 
         # initiolize number of reads of each genotypes seen across all samples
         ref_N = 0
@@ -63,11 +64,11 @@ def dict_maker(path,Depth_format_flag,reference_format_flag):
 
         # for all samples in the variant line
         for i in range(len(var.samples)):
-            if True: # Potentiol to blacklist things here
+            if True:  # Potential to blacklist things here
                 # initiolize a varyable for the number of reads
                 rr = 0.0
                 vr = 0.0
-                # for help with debuging try to do the next part if you cant prit what you saw
+                # for help with debuging try to do the next part if you can't print what you saw
                 try:
                     # if this pos did not have a variant in the vcf assume it was reference here, if not use the full depth and number of ref observed to get proportions.
                     if str(var.samples[i][reference_format_flag]) == 'None':
@@ -107,41 +108,39 @@ def dict_maker(path,Depth_format_flag,reference_format_flag):
             # get a total sum for the reference totalthen it it is not all zero calculate proportions and put it in a dictionary
             ref_sum = ref_N + ref_A + ref_B + ref_C + ref_D
             if ref_sum > 0.0:
-                reference_dictionary[var.pos] = np.array([ref_N , ref_A , ref_B , ref_C , ref_D]) / ref_sum
+                reference_dictionary[pos_key] = np.array([ref_N, ref_A, ref_B, ref_C, ref_D]) / ref_sum
             # do the same for variant reads.
             var_sum = var_N + var_A + var_B + var_C + var_D
             if var_sum > 0.0:
-                variant_dictionary[var.pos] = np.array([var_N, var_A, var_B, var_C, var_D]) / var_sum
+                variant_dictionary[pos_key] = np.array([var_N, var_A, var_B, var_C, var_D]) / var_sum
     # close the vcf
     vcf.close()
     # return a list of two dictionarys that contain the proportion of genotypesin a position that is reference or variant
     return [variant_dictionary,reference_dictionary]
 
 
-def find_total_genotype(path,dictionarys):
+def find_total_genotype(path, dictionarys, contig):
     import numpy as np
     import pysam
 
     vars = dictionarys[0]
     refs = dictionarys[1]
     # create running probubility score for the sample
-    run_sample_prop_score = np.array([0.0,0.0,0.0,0.0,0.0])
+    run_sample_prop_score = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
     vcf = pysam.VariantFile(path)
 
-    # look at all the variants in the file...0.5
-    for variant in vcf:
-        # actualy only the ones that are not blacklisted
-        if variant.contig == 'chr1': #variant.qual > 10:
+    # look at all the variants in the file on contig supplied
+    for variant in vcf.fetch(contig):
             # get out current position
-            pos = variant.pos
+            pos_key = str(variant.pos) + str(variant.alleles()[1])
             # find proportion of reads that were reference and proportion that were variant
-            var_scaling_factor = sum(list(map(float,variant.info['AO'])))/float(variant.info['DP'])
+            var_scaling_factor = sum(list(map(float, variant.info['AO'])))/float(variant.info['DP'])
             ref_scaling_factor = float(variant.info['RO'])/float(variant.info['DP'])
             # if we have this position in out varinat dictionary... add a scaled value of it to our running score
-            if vars.has_key(pos):
-                run_sample_prop_score = run_sample_prop_score + var_scaling_factor * vars[pos]
-            if refs.has_key(pos):
-                run_sample_prop_score = run_sample_prop_score + ref_scaling_factor * refs[pos]
+            if vars.has_key(pos_key):
+                run_sample_prop_score = run_sample_prop_score + var_scaling_factor * vars[pos_key]
+            if refs.has_key(pos_key):
+                run_sample_prop_score = run_sample_prop_score + ref_scaling_factor * refs[pos_key]
     # return a vector of cumulative proportions based on all positions
     return run_sample_prop_score/sum(run_sample_prop_score)
 
@@ -257,6 +256,7 @@ def import_info():
     ref_input_path = ''
     ful_flag = 'DP'
     ref_flag = 'RD'
+    ctig = "NOTCH2NL-consensus"
     # loop through the arguments till we hind a flag then assign the next term to the appropriate varyable.
     for arg_index in range(len(sys.argv)):
         if sys.argv[arg_index] in ['-h','--help']:
@@ -264,11 +264,12 @@ def import_info():
             Usage python predictions.py [options] -i/--input -r/--reference \n
             ________________________________________________________________________
             Options:\n
-            -i\t--input\t defines the single sample vcf that the program will make inferences about 
-            -r\t--reference\t defines the multisample vcf used to make known data, the sample names should have the pariotype leter after the first '_'
+            -i\t--input     \t defines the single sample vcf that the program will make inferences about 
+            -r\t--reference \t defines the multisample vcf used to make known data, the sample names should have the pariotype leter after the first '_'
             -A\t--full-depth\t defines the format flag for the depth of reads in the dictionary  ; default == 'DP'
-            -R\t--ref-depth\t defines the format flag for the depth of reads supporting the reference in the dictionary ; default == 'RD'
-            -h\t--help\tprint this information
+            -R\t--ref-depth \t defines the format flag for the depth of reads supporting the reference in the dictionary ; default == 'RD'
+            -c\t--contig    \t define contig to grab vcf records from default == NOTCH2NL-consensus
+            -h\t--help      \t print this information
             ''')
             sys.exit()
         elif sys.argv[arg_index] in ['-i','--input']:
@@ -278,6 +279,8 @@ def import_info():
         elif sys.argv[arg_index] in ['-A','--alt-depth']:
             ful_flag = sys.argv[arg_index+1]
             sys.stderr.write('setting alternative depth format flag to %s\n' % (sys.argv[arg_index+1]))
+        elif sys.argv[arg_index] in ['-c','--contig']:
+            ctig = sys.argv[arg_index + 1]
         elif sys.argv[arg_index] in ['-R','--ref-depth']:
             ref_flag = sys.argv[arg_index+1]
             sys.stderr.write('setting referenve depth format flag to %s\n' % (sys.argv[arg_index+1]))
@@ -287,11 +290,13 @@ def import_info():
 
 def main():
     # allow useer to pass in needed info
-    IOinfo = import_info()
-    print (IOinfo)
+    ref_vcf, dp_flag, ref_flag, unknown, contig = import_info()
+    print("ref vcf:\t%s\ndepth-ref:\t%s-%s\nUnknown vcf:\t%s\nContig to look at:\t%s" %
+          (ref_vcf, dp_flag, ref_flag, unknown, contig)
+          )
     # calculate the reference dictionaries
-    dict_list = dict_maker(IOinfo[0],IOinfo[1],IOinfo[2])
-    sample_prop = find_total_genotype(IOinfo[3],dict_list)
+    dict_list = dict_maker(ref_vcf, dp_flag, ref_flag, contig)
+    sample_prop = find_total_genotype(unknown, dict_list, contig)
     print(sample_prop)
     datamtx = props_to_guess(sample_prop)
 
