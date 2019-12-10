@@ -8,7 +8,7 @@ t2=$(mktemp)
 t3=$(mktemp)
 trap "rm -f ${t1} ${t2} ${t3} " 0 2 3 15 ## remove temp files when we die
 if [[ $prefix == "" ]]   # if the user wants a new prefix put it in if not use the name from the bam file
- then prefix=${in_bam::-3}
+ then prefix=${in_bam::-4}
 fi
 
 echo "Calculating coverage"
@@ -19,5 +19,5 @@ bgzip ${prefix}.vcf
 bcftools index ${prefix}.vcf.gz
 echo "Making consensus and masking"
 awk '{if ($4==0){print $0;}}' ${t1} > ${t2}  # convert to only region we need to mask later
-bcftools consensus -f ${ref} -s unknown  ${prefix}.vcf.gz > ${t3} ## make an unmasked consensus from the vcf
+bcftools consensus -f ${ref} -s unknown  ${prefix}.vcf.gz -o ${t3} ## make an unmasked consensus from the vcf
 bedtools maskfasta -fi ${t3} -bed ${t2} -fo ${prefix}_Scaffold.fa ## mask regions that had zero coverage
