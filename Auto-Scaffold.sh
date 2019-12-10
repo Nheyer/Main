@@ -7,7 +7,7 @@ t1=$(mktemp)
 t2=$(mktemp)
 t3=$(mktemp)
 trap "rm -f ${t1} ${t2} ${t3} " 0 2 3 15 ## remove temp files when we die
-if [-z $prefix ]   # if the user wants a new prefix put it in if not use the name from the bam file
+if [[ $prefix == "" ]]   # if the user wants a new prefix put it in if not use the name from the bam file
  then prefix=${in_bam::-3}
 fi
 
