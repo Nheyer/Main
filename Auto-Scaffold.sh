@@ -12,7 +12,7 @@ if [[ $prefix == "" ]]   # if the user wants a new prefix put it in if not use t
 fi
 in_bam=${prefix}sorted.bam
 
-if [$(grep -v \> $prefix | fold -w1 | grep [^ATCGNatcgn] -c) > 0]; then
+if [$(grep -v \> $ref | fold -w1 | grep [^ATCGNatcgn] -c) > 0]; then
  echo "We have a non-ATCGN base in the reference, we will make a temporary ref to deal with this, if there are more then 1 strand in ref it will fail"
  n_ref=$(mktemp)
  trap "rm -f ${n_ref}"
