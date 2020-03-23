@@ -12,7 +12,7 @@ if [-z $prefix ]   # if the user wants a new prefix put it in if not use the nam
 fi
 
 echo "Calculating coverage"
-bamCoverage -b ${in_bam} -of bedgraph -bs 1 -o ${t1} & ## make a coverage map as a bedgraph
+bamCoverage -b ${in_bam} -of bedgraph -bs 1 -o ${t1}  ## make a coverage map as a bedgraph
 echo "Calling variants"
 freebayes -C 1 -f ${ref} ${in_bam} > ${prefix}.vcf  ## call variants form ref
 bgzip ${prefix}.vcf
